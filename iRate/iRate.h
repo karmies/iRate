@@ -159,6 +159,8 @@ typedef NS_ENUM(NSUInteger, iRateErrorCode)
 @property (nonatomic, assign) BOOL ratedThisVersion;
 @property (nonatomic, readonly) BOOL ratedAnyVersion;
 @property (nonatomic, weak_delegate) id<iRateDelegate> delegate;
+    
+@property (nonatomic, strong) UIViewController *rootViewController;
 
 //manually control behaviour
 - (BOOL)shouldPromptForRating;
@@ -168,6 +170,7 @@ typedef NS_ENUM(NSUInteger, iRateErrorCode)
 - (void)openRatingsPageInAppStore;
 - (void)logEvent:(BOOL)deferPrompt;
 - (void)remindLater;
+- (void)applicationWillEnterForeground;
 
 @end
 

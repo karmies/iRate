@@ -235,17 +235,6 @@ static NSString *const iRateMacAppStoreURLFormat = @"macappstore://itunes.apple.
 
 - (id<iRateDelegate>)delegate
 {
-    if (_delegate == nil)
-    {
-
-#if TARGET_OS_IPHONE
-#define APP_CLASS UIApplication
-#else
-#define APP_CLASS NSApplication
-#endif
-
-        _delegate = (id<iRateDelegate>)[(APP_CLASS *)[APP_CLASS sharedApplication] delegate];
-    }
     return _delegate;
 }
 
@@ -852,7 +841,7 @@ static NSString *const iRateMacAppStoreURLFormat = @"macappstore://itunes.apple.
 
 #if TARGET_OS_IPHONE
 
-        UIViewController *topController = [UIApplication sharedApplication].delegate.window.rootViewController;
+        UIViewController *topController = self.rootViewController;
         while (topController.presentedViewController)
         {
             topController = topController.presentedViewController;
@@ -887,32 +876,6 @@ static NSString *const iRateMacAppStoreURLFormat = @"macappstore://itunes.apple.
 
             //get current view controller and present alert
             [topController presentViewController:alert animated:YES completion:NULL];
-        }
-        else
-        {
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:self.messageTitle
-                                                            message:message
-                                                           delegate:(id<UIAlertViewDelegate>)self
-                                                  cancelButtonTitle:nil
-                                                  otherButtonTitles:self.rateButtonLabel, nil];
-#pragma clang diagnostic pop
-
-            if ([self showCancelButton])
-            {
-                [alert addButtonWithTitle:self.cancelButtonLabel];
-                alert.cancelButtonIndex = 1;
-            }
-
-            if ([self showRemindButton])
-            {
-                [alert addButtonWithTitle:self.remindButtonLabel];
-            }
-
-            self.visibleAlert = alert;
-            [self.visibleAlert show];
         }
 
 #else
@@ -1042,14 +1005,11 @@ static NSString *const iRateMacAppStoreURLFormat = @"macappstore://itunes.apple.
 
 - (void)applicationWillEnterForeground
 {
-    if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground)
+    [self incrementUseCount];
+    [self checkForConnectivityInBackground];
+    if (self.promptAtLaunch)
     {
-        [self incrementUseCount];
-        [self checkForConnectivityInBackground];
-        if (self.promptAtLaunch)
-        {
-            [self promptIfAllCriteriaMet];
-        }
+        [self promptIfAllCriteriaMet];
     }
 }
 
@@ -1073,14 +1033,7 @@ static NSString *const iRateMacAppStoreURLFormat = @"macappstore://itunes.apple.
     {
         cantOpenMessage = @"iRate could not open the ratings page because the App Store is not available on the iOS simulator";
     }
-
-#elif DEBUG
-
-    if (![[UIApplication sharedApplication] canOpenURL:self.ratingsURL])
-    {
-        cantOpenMessage = [NSString stringWithFormat:@"iRate was unable to open the specified ratings URL: %@", self.ratingsURL];
-    }
-
+    
 #endif
 
     void (^handler)(NSString *errorMessage) = ^(NSString *errorMessage)
@@ -1118,9 +1071,7 @@ static NSString *const iRateMacAppStoreURLFormat = @"macappstore://itunes.apple.
             NSLog(@"iRate will open the App Store ratings page using the following URL: %@", self.ratingsURL);
         }
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0
-
-        [[UIApplication sharedApplication] openURL:self.ratingsURL options:@{} completionHandler:^(BOOL success){
+        [self.rootViewController.extensionContext openURL:self.ratingsURL completionHandler:^(BOOL success){
             if (success)
             {
                 handler(nil);
@@ -1130,11 +1081,6 @@ static NSString *const iRateMacAppStoreURLFormat = @"macappstore://itunes.apple.
                 handler([NSString stringWithFormat:@"iRate was unable to open the specified ratings URL: %@", self.ratingsURL]);
             }
         }];
-#else
-        [[UIApplication sharedApplication] openURL:self.ratingsURL];
-        handler(nil);
-#endif
-
     }
 }
 
